@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+DEPLOYMENT.md
+LICENSE
+
+# Environment
+.env
+.env.*
+
+# Scripts
+docker_reset.py
+deploy.sh
+Makefile
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Backups
+backup*.sql
