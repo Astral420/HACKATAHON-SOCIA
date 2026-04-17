@@ -1,16 +1,22 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import React from 'react';
-import { useColorScheme } from 'react-native';
+import { Stack } from 'expo-router';
+import { StatusBar } from 'react-native';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function Layout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <>
+      <StatusBar barStyle="light-content" />
+      <Stack screenOptions={{
+        headerStyle: { backgroundColor: '#141414' },
+        headerTitleStyle: { fontWeight: '700', color: '#fff' },
+        headerTintColor: '#3b82f6',
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: '#0a0a0a' }
+      }}>
+        <Stack.Screen name="index" options={{ title: 'Meetings' }} />
+        <Stack.Screen name="detail" options={{ title: 'Meeting Output' }} />
+        <Stack.Screen name="create" options={{ title: 'New Meeting' }} />
+        <Stack.Screen name="share" options={{ title: 'Share with Client', headerBackVisible: false }} />
+      </Stack>
+    </>
   );
 }

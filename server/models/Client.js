@@ -1,12 +1,30 @@
 const pool = require('../utils/db');
 
 class Client {
-  static async create({ name, email, company, userId }) {
+  /**
+   * Create a new client
+   * @param {string} name - Client name
+   * @returns {Promise<Object>} Created client object with id, name, created_at
+   */
+  static async create(name) {
     const result = await pool.query(
-      `INSERT INTO clients (name, email, company, user_id, created_at)
-       VALUES ($1, $2, $3, $4, NOW())
-       RETURNING *`,
-      [name, email, company, userId]
+      `INSERT INTO clients (name, created_at)
+       VALUES ($1, CURRENT_TIMESTAMP)
+       RETURNING id, name, created_at`,
+      [name]
+    );
+    return result.rows[0];
+  }
+
+  /**
+   * Find a client by name
+   * @param {string} name - Client name to search for
+   * @returns {Promise<Object|undefined>} Client object if found, undefined otherwise
+   */
+  static async findByName(name) {
+    const result = await pool.query(
+      'SELECT id, name, created_at FROM clients WHERE name = $1',
+      [name]
     );
     return result.rows[0];
   }
