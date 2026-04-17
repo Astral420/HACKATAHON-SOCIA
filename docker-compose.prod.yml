@@ -21,7 +21,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - GEN_AI_KEY=${GEN_AI_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - API_KEY=${API_KEY}
       - R2_ENDPOINT=${R2_ENDPOINT}
       - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}

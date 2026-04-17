@@ -11,9 +11,11 @@ const validate = (schema) => {
       next();
     } catch (err) {
       if (err instanceof z.ZodError) {
+        // Return descriptive error message from the first validation error
+        const firstError = err.errors[0];
+        const message = firstError.message || 'Validation failed';
         return res.status(400).json({
-          error: 'Validation failed',
-          details: err.errors,
+          error: message,
         });
       }
       next(err);
@@ -21,19 +23,29 @@ const validate = (schema) => {
   };
 };
 
+// Validation schemas for meeting creation
+const createMeetingSchema = z.object({
+  body: z.object({
+    title: z.string({ required_error: 'Title is required' }).min(1, 'Title is required').max(255, 'Title must not exceed 255 characters'),
+    clientName: z.string({ required_error: 'Client name is required' }).min(1, 'Client name is required').max(255, 'Client name must not exceed 255 characters'),
+  }),
+});
+
+// Validation schema for transcript upload
+const uploadTranscriptSchema = z.object({
+  body: z.object({
+    content: z.string({ required_error: 'Transcript content is required' }).min(1, 'Transcript content is required').max(50000, 'Transcript content must not exceed 50,000 characters'),
+  }),
+});
+
 // Common schemas
 const schemas = {
-  createMeeting: z.object({
-    body: z.object({
-      clientId: z.number().int().positive(),
-      title: z.string().min(1).max(255),
-      recordingUrl: z.string().url().optional(),
-    }),
-  }),
+  createMeeting: createMeetingSchema,
+  uploadTranscript: uploadTranscriptSchema,
 
   updateMeeting: z.object({
     params: z.object({
-      id: z.string().regex(/^\d+$/),
+      id: z.string().uuid(),
     }),
     body: z.object({
       title: z.string().min(1).max(255).optional(),
@@ -43,7 +55,7 @@ const schemas = {
 
   processMeeting: z.object({
     params: z.object({
-      id: z.string().regex(/^\d+$/),
+      id: z.string().uuid(),
     }),
   }),
 

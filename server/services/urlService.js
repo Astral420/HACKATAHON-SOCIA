@@ -1,39 +1,38 @@
 const crypto = require('crypto');
-const CacheService = require('./cacheService');
+const pool = require('../utils/db');
 
+/**
+ * URL Service for generating share tokens
+ * Tokens are URL-safe and unique identifiers for public meeting access
+ */
 class UrlService {
-  static generateToken(meetingId) {
-    const payload = `${meetingId}-${Date.now()}`;
-    return crypto.createHash('sha256').update(payload).digest('hex').substring(0, 16);
+  /**
+   * Generate a unique, URL-safe share token
+   * Uses crypto.randomBytes to ensure uniqueness and security
+   * @returns {string} URL-safe token (16 characters, hex encoded)
+   */
+  static generateToken() {
+    // Generate 8 random bytes and convert to hex (16 characters)
+    // Hex encoding ensures URL-safe characters (0-9, a-f)
+    return crypto.randomBytes(8).toString('hex');
   }
 
-  static async createShareUrl(meetingId, expiresIn = 7 * 24 * 60 * 60) {
-    const token = this.generateToken(meetingId);
-    const cacheKey = `share:${token}`;
-    
-    await CacheService.set(cacheKey, { meetingId }, expiresIn);
-    
-    return {
-      token,
-      url: `${process.env.PUBLIC_URL || 'http://localhost:3000'}/m/${token}`,
-      expiresAt: new Date(Date.now() + expiresIn * 1000)
-    };
-  }
-
+  /**
+   * Validate a share token and return meeting ID if valid
+   * @param {string} token - Share token to validate
+   * @returns {Promise<{valid: boolean, meetingId?: string}>} Validation result
+   */
   static async validateToken(token) {
-    const cacheKey = `share:${token}`;
-    const data = await CacheService.get(cacheKey);
-    
-    if (!data) {
-      return { valid: false, meetingId: null };
-    }
-    
-    return { valid: true, meetingId: data.meetingId };
-  }
+    const result = await pool.query(
+      'SELECT id FROM meetings WHERE share_token = $1 AND status = $2',
+      [token, 'done']
+    );
 
-  static async revokeToken(token) {
-    const cacheKey = `share:${token}`;
-    await CacheService.del(cacheKey);
+    if (result.rows.length > 0) {
+      return { valid: true, meetingId: result.rows[0].id };
+    }
+
+    return { valid: false };
   }
 }
 

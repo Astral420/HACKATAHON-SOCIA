@@ -1,98 +1,117 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { useMeetings } from '../hooks/useMeetings';
+import { useRouter, useFocusEffect, type Href } from 'expo-router';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+export default function MeetingListScreen() {
+  const { meetings, loading, error, refresh } = useMeetings();
+  const router = useRouter();
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
   );
-}
 
-export default function HomeScreen() {
+  const renderItem = ({ item }: { item: any }) => (
+    <TouchableOpacity 
+      style={styles.card} 
+      activeOpacity={0.7} 
+      onPress={() =>
+        router.push(({
+          pathname: '/detail',
+          params: { id: item.id, title: item.title, clientName: item.clientName, shareToken: item.shareToken },
+        } as unknown) as Href)
+      }
+    >
+      <View style={styles.cardHeader}>
+        <Text style={styles.clientBadge}>{item.clientName}</Text>
+        <View style={[styles.statusIndicator, item.status === 'processing' ? styles.statusProcessing : styles.statusDone]}>
+          <Text style={[styles.statusText, item.status === 'processing' && {color: '#f59e0b'}]}>
+            {item.status.toUpperCase()}
+          </Text>
+        </View>
+      </View>
+      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+    <View style={styles.container}>
+      {loading ? (
+        <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>
+      ) : error ? (
+        <View style={styles.center}><Text style={{color: 'red'}}>{error}</Text></View>
+      ) : (
+        <FlatList
+          data={meetings}
+          keyExtractor={item => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContainer}
+          onRefresh={refresh}
+          refreshing={loading}
+        />
+      )}
+      <TouchableOpacity 
+        style={styles.fab}
+        onPress={() => router.push(('/create' as unknown) as Href)}
+      >
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1, backgroundColor: '#0a0a0a' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  listContainer: { padding: 16 },
+  card: {
+    backgroundColor: '#141414',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#262626',
+    borderTopColor: '#333333',
+  },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  clientBadge: {
+    backgroundColor: '#1e1e1e',
+    color: '#a3a3a3',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 12,
+    fontWeight: '600',
+    overflow: 'hidden'
+  },
+  statusIndicator: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusDone: { backgroundColor: 'rgba(16, 185, 129, 0.1)' },
+  statusProcessing: { backgroundColor: 'rgba(245, 158, 11, 0.1)' },
+  statusText: { fontSize: 10, fontWeight: '700', color: '#10b981', letterSpacing: 0.5 },
+  title: { fontSize: 20, fontWeight: '700', color: '#ffffff', marginBottom: 6 },
+  date: { fontSize: 13, color: '#737373' },
+  fab: {
+    position: 'absolute',
+    bottom: 32,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#3b82f6',
     justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
+  fabText: { fontSize: 32, color: '#fff', fontWeight: '300', marginTop: -4 }
 });

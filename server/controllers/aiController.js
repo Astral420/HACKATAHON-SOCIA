@@ -16,7 +16,7 @@ class AiController {
       }
 
       // Check if transcript exists
-      let transcript = await Transcript.findByMeetingId(id);
+      const transcript = await Transcript.findByMeetingId(id);
       
       if (!transcript) {
         return res.status(400).json({ 
@@ -30,26 +30,20 @@ class AiController {
       
       if (cached) {
         logger.info({ meetingId: id }, 'Returning cached AI output');
-        return res.json(cached);
+        return res.json({ status: 'done', output: cached });
       }
 
-      // Process with AI
+      // Process with AI (handles status updates internally)
       logger.info({ meetingId: id }, 'Starting AI processing');
-      const aiResult = await AiService.processTranscript(transcript.text);
+      await AiService.processMeeting(id);
 
-      // Save to database
-      const aiOutput = await AiOutput.create({
-        meetingId: id,
-        summary: aiResult.summary,
-        actionItems: JSON.stringify(aiResult.actionItems),
-        keyPoints: JSON.stringify(aiResult.keyPoints),
-        sentiment: aiResult.sentiment,
-      });
+      // Fetch the saved output
+      const aiOutput = await AiOutput.findByMeetingId(id);
 
       // Cache for 1 hour
       await CacheService.set(cacheKey, aiOutput, 3600);
 
-      res.json(aiOutput);
+      res.json({ status: 'done', output: aiOutput });
     } catch (err) {
       next(err);
     }
